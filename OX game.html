@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sridhar Tic Tac Toe</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #111827;
+      color: white;
+      margin: 0;
+    }
+    .container { text-align: center; width: 100%; max-width: 400px; }
+    h1 { color: #f87171; font-size: 1.8rem; }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      margin: 20px auto;
+      gap: 5px;
+    }
+    .cell {
+      aspect-ratio: 1 / 1;
+      background: #1f2937;
+      border: 2px solid #f87171;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 8vw;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .cell:hover { background: #374151; }
+
+    .status { margin: 15px; font-size: 1rem; font-weight: bold; }
+
+    .scoreboard {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    .score {
+      background: #1f2937;
+      border: 2px solid #f87171;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 18px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #f87171;
+      color: white;
+      font-weight: bold;
+      transition: 0.2s;
+      width: 90%;
+      max-width: 250px;
+    }
+    button:hover { background: #dc2626; }
+
+    @media (max-width: 500px) {
+      h1 { font-size: 1.4rem; }
+      .cell { font-size: 12vw; }
+      .score { font-size: 0.8rem; padding: 6px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⭕❌ Sridhar Tic Tac Toe 🎮</h1>
+
+    <div class="scoreboard">
+      <div class="score">Player: <span id="playerScore">0</span></div>
+      <div class="score">AI: <span id="aiScore">0</span></div>
+      <div class="score">Draws: <span id="drawScore">0</span></div>
+    </div>
+
+    <div class="status" id="status">Your turn (X)</div>
+    <div class="board" id="board"></div>
+    <button onclick="restartGame()">Restart</button>
+  </div>
+
+  <script>
+    const board = document.getElementById("board");
+    const statusText = document.getElementById("status");
+    const playerScoreEl = document.getElementById("playerScore");
+    const aiScoreEl = document.getElementById("aiScore");
+    const drawScoreEl = document.getElementById("drawScore");
+
+    let cells = [];
+    let currentPlayer = "X";
+    let gameActive = true;
+    let playerScore = 0, aiScore = 0, drawScore = 0;
+
+    function createBoard() {
+      board.innerHTML = "";
+      cells = Array(9).fill("");
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.addEventListener("click", () => handleClick(i));
+        board.appendChild(cell);
+      }
+    }
+
+    function handleClick(index) {
+      if (!gameActive || cells[index] !== "" || currentPlayer !== "X") return;
+      cells[index] = "X";
+      board.children[index].textContent = "X";
+
+      if (checkWin(cells, "X")) {
+        statusText.textContent = "🎉 You Win!";
+        playerScore++;
+        updateScore();
+        gameActive = false;
+        return;
+      }
+      if (!cells.includes("")) {
+        statusText.textContent = "🤝 Draw!";
+        drawScore++;
+        updateScore();
+        gameActive = false;
+        return;
+      }
+
+      currentPlayer = "O";
+      statusText.textContent = "AI thinking...";
+      setTimeout(computerMove, 500);
+    }
+
+    function computerMove() {
+      let bestScore = -Infinity;
+      let move;
+      for (let i = 0; i < 9; i++) {
+        if (cells[i] === "") {
+          cells[i] = "O";
+          let score = minimax(cells, 0, false);
+          cells[i] = "";
+          if (score > bestScore) {
+            bestScore = score;
+            move = i;
+          }
+        }
+      }
+      cells[move] = "O";
+      board.children[move].textContent = "O";
+
+      if (checkWin(cells, "O")) {
+        statusText.textContent = "😢 AI Wins!";
+        aiScore++;
+        updateScore();
+        gameActive = false;
+        return;
+      }
+      if (!cells.includes("")) {
+        statusText.textContent = "🤝 Draw!";
+        drawScore++;
+        updateScore();
+        gameActive = false;
+        return;
+      }
+
+      currentPlayer = "X";
+      statusText.textContent = "Your turn (X)";
+    }
+
+    const winPatterns = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    function checkWin(board, player) {
+      return winPatterns.some(pattern => pattern.every(i => board[i] === player));
+    }
+
+    function minimax(newBoard, depth, isMaximizing) {
+      if (checkWin(newBoard, "O")) return 10 - depth;
+      if (checkWin(newBoard, "X")) return depth - 10;
+      if (!newBoard.includes("")) return 0;
+
+      if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (newBoard[i] === "") {
+            newBoard[i] = "O";
+            let score = minimax(newBoard, depth + 1, false);
+            newBoard[i] = "";
+            bestScore = Math.max(score, bestScore);
+          }
+        }
+        return bestScore;
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (newBoard[i] === "") {
+            newBoard[i] = "X";
+            let score = minimax(newBoard, depth + 1, true);
+            newBoard[i] = "";
+            bestScore = Math.min(score, bestScore);
+          }
+        }
+        return bestScore;
+      }
+    }
+
+    function updateScore() {
+      playerScoreEl.textContent = playerScore;
+      aiScoreEl.textContent = aiScore;
+      drawScoreEl.textContent = drawScore;
+    }
+
+    function restartGame() {
+      currentPlayer = "X";
+      gameActive = true;
+      statusText.textContent = "Your turn (X)";
+      createBoard();
+    }
+
+    createBoard();
+  </script>
+</body>
+</html>
